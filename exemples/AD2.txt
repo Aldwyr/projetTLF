@@ -1,0 +1,13 @@
+# Automate acceptant les mots ayant un nombre pair de a et un nombre pair de b
+# 4 états, Sigma = {a,b}, 1 état final
+4 2 1
+0
+0
+0 a 1
+1 a 0
+0 b 2
+2 b 0
+2 a 3
+3 a 2
+1 b 3
+3 b 1

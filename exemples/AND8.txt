@@ -1,0 +1,11 @@
+# a (ba)*
+2 2 1
+
+# état initial
+0
+
+# état final
+1
+
+0 a 1
+1 b 0

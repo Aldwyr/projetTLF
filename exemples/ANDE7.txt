@@ -1,0 +1,16 @@
+# (a U ab U aba)*
+3 2 1
+
+# état initial
+0
+
+# états finaux
+0
+
+# tranitions
+0 a 1
+1 b 2
+2 a 0
+2 e 0
+0 e 2
+
