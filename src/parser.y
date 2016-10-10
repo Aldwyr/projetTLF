@@ -68,7 +68,7 @@ sExpressionRationnelle lit_expression_rationnelle(istream & file) {
   return lit_expression_rationnelle();
 }
 
-sExpressionRa
+sExpressionRationnelle lit_expression_rationnelle(const string & s) {
   istringstream is (s);
   set_yy_buffer(is);
   return lit_expression_rationnelle();
