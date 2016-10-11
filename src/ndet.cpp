@@ -22,7 +22,7 @@ using namespace std;
 
 const unsigned int ASCII_A = 97;
 const unsigned int ASCII_Z = ASCII_A + 26;
-const bool         DEBUG = false;
+const bool         DEBUG = true;
 
 typedef size_t                            etat_t;
 typedef unsigned char                     symb_t;
@@ -118,15 +118,17 @@ bool FromFile(sAutoNDE& at, string path){
       // si une des trois lectures echoue, on passe à la suite
       if((iss >> s).fail() || (iss >> a).fail() || (iss >> t).fail() || (a< ASCII_A ) || (a> ASCII_Z ))
         continue; 
+	
+	  if(DEBUG) { cout << s << "-" << a << "->" << t << "\n"; }
               
       //test espilon ou non
       if ((a-ASCII_A) >= at.nb_symbs){
 //        cerr << "s=" << s<< ", (e), t=" << t << endl;
-// TODO: remplir epsilon
+		at.epsilon[s].insert(t);
       }
       else{
 //        cerr << "s=" << s<< ", a=" << a-ASCII_A << ", t=" << t << endl;
-// TODO: remplir trans
+		at.trans[s][a-ASCII_A].insert(t);
       }
     }
     myfile.close();
@@ -143,9 +145,21 @@ bool FromFile(sAutoNDE& at, string path){
 
 
 bool EstDeterministe(const sAutoNDE& at){
-  //TODO définir cette fonction
 
-  return false;
+  for(auto it_e = at.epsilon.cbegin(); it_e != at.epsilon.cend(); it_e++) {
+	  if(DEBUG) cout << it_e->size() << " ";
+	  if(it_e->size() > 0) { return false; }
+  }
+  
+  // trans = vector<vector<set<int>>>
+  for(auto it = at.trans.cbegin(); it != at.trans.cend(); it++) {
+	  // it = itérateur sur vector<set<int>>
+	  for(auto it2 = it->cbegin(); it2 != it->cend(); it2++) {
+		  // it2 = itérateur sur set<int>
+		  if(it2->size() > 1) { return false; }
+	  }
+  }
+  return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
