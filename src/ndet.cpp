@@ -144,8 +144,7 @@ bool FromFile(sAutoNDE& at, string path){
 
 bool EstDeterministe(const sAutoNDE& at){
   //TODO définir cette fonction
-
-  return false;
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -310,7 +309,7 @@ void Help(ostream& out, char *s){
   out << "-det ou -determinize Input Output [-g] :\n\t déterminise l'automate Input, écrit le résultat dans Output" << endl;
   out << "-isdet ou -is_deterministic Input :\n\t détermine si l'automate Input est déterministe" << endl;
   out << "-aut2expr ou automate2expressionrationnelle Input :\n\t calcule l'expression rationnelle correspondant à l'automate Input et l'affiche sur la sortie standard" << endl;
-  out << "-expr2aut ou expressionrationnelle2automate ExpressionRationnelle Output [-g] :\n\t calcule l'automate correspondant à ExpressionRationnelle, écrit l'automate résultant dans Output" << endl;
+  out << "-expr2aut ou expressionration\"\\t \", -1nelle2automate ExpressionRationnelle Output [-g] :\n\t calcule l'automate correspondant à ExpressionRationnelle, écrit l'automate résultant dans Output" << endl;
   out << "-equ ou -equivalent Input1 Intput2 :\n\t détermine si les deux automates Input1 et Input2 sont équivalents" << endl;
   out << "-nop ou -no_operation Input Output [-g] :\n\t ne fait rien de particulier, recopie l'entrée dans Output" << endl;
   

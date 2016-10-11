@@ -7,4 +7,4 @@ add_custom_target(projetTLF COMMAND make -C ${projetTLF_SOURCE_DIR}
                             CLION_EXE_DIR=${PROJET_BINARY_DIR})
 
 #set(SOURCE_FILES src/ndet.cpp)
-add_executable(projetTLF ${SOURCE_FILES})
+#add_executable(projetTLF ${SOURCE_FILES})
