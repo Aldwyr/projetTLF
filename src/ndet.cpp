@@ -22,7 +22,7 @@ using namespace std;
 
 const unsigned int ASCII_A = 97;
 const unsigned int ASCII_Z = ASCII_A + 26;
-const bool         DEBUG = true;
+const bool         DEBUG = false;
 
 typedef size_t                            etat_t;
 typedef unsigned char                     symb_t;
