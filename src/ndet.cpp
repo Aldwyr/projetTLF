@@ -209,9 +209,65 @@ ostream& operator<<(ostream& out, const sAutoNDE& at){
 ////////////////////////////////////////////////////////////////////////////////
 
 bool ToGraph(sAutoNDE& at, string path){
-  //TODO définir cette fonction
+  // NE FONCTIONNE PAS
 
-  return false;
+	FILE* f = fopen(path.c_str(), "w");
+	if(f == NULL) { return false; }
+
+	fprintf(f, "digraph finite_state_machine {\n");
+	fprintf(f, "\trankdir=LR\n");
+	fprintf(f, "\tsize=\"10,10\"\n\n");
+	
+	// Etats finaux
+	fprintf(f, "\tnode [shape = doublecircle]; ");
+	for(auto it = at.finaux.cbegin(); it != at.finaux.cend(); it++) {
+		fprintf(f, "%u ", *it);
+	}
+	fprintf(f, ";\n");
+	
+	fprintf(f, "\tnode [shape = point]; q;\n");
+	fprintf(f, "\tnode [shape = circle];\n\n");
+	
+	// Etat initial
+	fprintf(f, "\tq -> %u;\n", at.initial);
+	
+	// Transitions
+	int s, a, t;
+	s = 0;
+	for(auto it_s = at.trans.cbegin(); it_s != at.trans.cend(); it_s++) {
+		// s = l'état source
+		a = 0;
+		for(auto it_a = it_s->cbegin(); it_a != it_s->cend(); it_a++) {
+			// a = le symbole de transition
+			t = 0;
+			for(auto it_t = it_a->cbegin(); it_t != it_a->cend(); it_t++) {
+				// t = l'état d'arrivée
+				fprintf(f, "\t%u -> %u [label = \"%c\"];\n", s, t, a + ASCII_A);
+				t++;
+			}
+			a++;
+		}
+		s++;
+	}
+	fprintf(f, "\n");
+	
+	// Epsilon transitions
+	s = 0;
+	for(auto it_s = at.epsilon.cbegin(); it_s != at.epsilon.cend(); it_s++) {
+		t = 0;
+		for(auto it_t = it_s->cbegin(); it_t != it_s->cend(); it_t++) {
+			fprintf(f, "\t%u -> %u [label = \"ε\"];\n", s, t);
+			t++;
+		}
+		s++;
+	}
+	
+	// TODO : fixer le problème du } manquant en fin de fichier
+	
+	printf("\n } \n");
+	fclose(f);
+	
+  return true;
 }
 
 
