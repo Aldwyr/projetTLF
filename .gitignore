@@ -1,6 +1,6 @@
 #ignore file *.o
 *.o
-
 .DS_Store
-
 .idea/*
+*~
+CMakeLists.txt
