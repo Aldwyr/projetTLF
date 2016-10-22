@@ -151,12 +151,13 @@ bool EstDeterministe(const sAutoNDE& at){
 	  if(it_e->size() > 0) { return false; }
   }
   
-  // trans = vector<vector<set<int>>>
+  // trans = vector<vector<set<int>>> = [s][a]<t>
   for(auto it = at.trans.cbegin(); it != at.trans.cend(); it++) {
-	  // it = itérateur sur vector<set<int>>
+	  // it = itérateur sur vector<set<int>> = état de départ
 	  for(auto it2 = it->cbegin(); it2 != it->cend(); it2++) {
-		  // it2 = itérateur sur set<int>
-		  if(it2->size() > 1) { return false; }
+		  // it2 = itérateur sur set<int> = symbole de transition
+          // pour chaque état, il faut que chaque symbole donne exactement 1 état d'arrivée
+		  if(it2->size() != 1) { return false; }
 	  }
   }
   return true;
