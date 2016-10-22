@@ -222,7 +222,7 @@ bool ToGraph(sAutoNDE& at, string path){
 	// Etats finaux
 	fprintf(f, "\tnode [shape = doublecircle]; ");
 	for(auto it = at.finaux.cbegin(); it != at.finaux.cend(); it++) {
-		fprintf(f, "%u ", *it);
+		fprintf(f, "%lu ", *it);
 	}
 	fprintf(f, ";\n");
 	
@@ -230,21 +230,20 @@ bool ToGraph(sAutoNDE& at, string path){
 	fprintf(f, "\tnode [shape = circle];\n\n");
 	
 	// Etat initial
-	fprintf(f, "\tq -> %u;\n", at.initial);
+	fprintf(f, "\tq -> %lu;\n", at.initial);
 	
 	// Transitions
-	int s, a, t;
+	int s, a;
 	s = 0;
 	for(auto it_s = at.trans.cbegin(); it_s != at.trans.cend(); it_s++) {
 		// s = l'état source
 		a = 0;
 		for(auto it_a = it_s->cbegin(); it_a != it_s->cend(); it_a++) {
 			// a = le symbole de transition
-			t = 0;
 			for(auto it_t = it_a->cbegin(); it_t != it_a->cend(); it_t++) {
-				// t = l'état d'arrivée
-				fprintf(f, "\t%u -> %u [label = \"%c\"];\n", s, t, a + ASCII_A);
-				t++;
+				// *it_t = l'état d'arrivée
+				fprintf(f, "\t%u -> %lu [label = \"%c\"];\n", s, *it_t, a + ASCII_A);
+                if(DEBUG) { printf("%u -%c-> %lu\n", s, a + ASCII_A, *it_t); }
 			}
 			a++;
 		}
@@ -255,17 +254,13 @@ bool ToGraph(sAutoNDE& at, string path){
 	// Epsilon transitions
 	s = 0;
 	for(auto it_s = at.epsilon.cbegin(); it_s != at.epsilon.cend(); it_s++) {
-		t = 0;
 		for(auto it_t = it_s->cbegin(); it_t != it_s->cend(); it_t++) {
-			fprintf(f, "\t%u -> %u [label = \"ε\"];\n", s, t);
-			t++;
+			fprintf(f, "\t%u -> %lu [label = \"ε\"];\n", s, *it_t);
 		}
 		s++;
 	}
 	
-	// TODO : fixer le problème du } manquant en fin de fichier
-	
-	printf("\n } \n");
+	fprintf(f, "\n} \n");
 	fclose(f);
 	
   return true;
