@@ -1,6 +1,6 @@
 CC=g++
 #CFLAGS=-c -Wall -Wextra -ansi -pedantic -std=c++11 -stdlib=libc++
-CFLAGS=-c -Wall -Wextra -ansi -std=c++11 -Wno-unused-parameter -Wno-unused-function
+CFLAGS=-c -ggdb -Wall -Wextra -ansi -std=c++11 -Wno-unused-parameter -Wno-unused-function
 LDFLAGS=
 SOURCES=src/ndet.cpp src/expression_rationnelle.cpp src/parser.tab.cpp src/lex.yy.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
