@@ -244,7 +244,7 @@ ostream& operator<<(ostream& out, const sAutoNDE& at){
         for (auto it_epsilon_begin = at.epsilon.cbegin(); it_epsilon_begin != at.epsilon.cend(); ++it_epsilon_begin) {
             // On est au début
             out << "transition epsilon :" << *it_epsilon_begin << " -> " << "e " << " -> ";
-            for (auto it_epsilon_end = it_epsilon_begin->cbedgin; it_epsilon_end != it_epsilon_begin->cend(); ++it_epsilon_end) {
+            for (auto it_epsilon_end = it_epsilon_begin->cbegin(); it_epsilon_end != it_epsilon_begin->cend(); ++it_epsilon_end) {
                 // On est à l'état final de la transition.
                 out << *it_epsilon_end << endl;
             }
