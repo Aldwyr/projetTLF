@@ -4,3 +4,14 @@
 .idea/*
 *~
 CMakeLists.txt
+ndet
+src/lex.yy.cpp
+src/parser.tab.hpp
+src/parser.tab.cpp
+src/stack.hh
+/src/parser.hpp
+/src/parser.lex
+/src/parser.y
+/src/parser_defs.hpp
+/src/position.hh
+/src/location.hh
