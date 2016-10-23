@@ -1,4 +1,4 @@
-#include <iostream>
+    #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
@@ -204,7 +204,53 @@ sAutoNDE Determinize(const sAutoNDE& at){
 ostream& operator<<(ostream& out, const sAutoNDE& at){
   //TODO définir cette fonction
 
-  return out;
+
+    // On affiche les nombres d'états disponible
+    out << "J'ai " << at.nb_etats << " état dans mon automats." << endl;
+
+    // On affiche les nombres de symbole
+    out << "J'ai " << at.nb_symbs << " symboles." << endl;
+
+     // On affiche le nombre d'état finaux.
+    out << "J'ai " << at.nb_finaux << " états finaux disponibles." << endl;
+
+    // On affiche l'état initial.
+    out << "Mon état initial est : " << endl;
+    out << at.initial << endl;
+    // On affiche les états finaux possible.
+    out << "Mes états finaux sont : " << endl;
+    for (auto i = at->finaux.cbegin(); i != at.finaux.cend(); ++i) {
+        out << ' ' << *i;
+    }
+    out << endl;
+
+    // On affiche les transitions.
+    // ICi où j'ai le doute dans le sens de lecture.
+    for (auto it_begin = at.trans.cbegin(); it_begin != at.trans.cend(); ++it_begin) {
+        // On commence par l'état de départ
+        out << "transition :" << *it_begin << " -> ";
+        for (auto it_lettre = it_begin->cbegin(); it_lettre != it_begin->cend(); ++it_lettre){
+            // On passe maintenant à la lettre utilisé pour faire la transition.
+            out << *it_lettre << " -> ";
+            for (auto it_arrive = it_lettre->cbegin(); it_arrive != it_lettre->cend(); ++it_arrive) {
+                // On est maintenant dans l'état d'arrivé.
+                out << *it_arrive << endl;
+            }
+        }
+    }
+
+
+    if (!at.epsilon.isEmpty()) {
+        for (auto it_epsilon_begin = at.epsilon.cbegin(); it_epsilon_begin != at.epsilon.cend(); ++it_epsilon_begin) {
+            // On est au début
+            out << "transition epsilon :" << *it_epsilon_begin << " -> " << "e " << " -> ";
+            for (auto it_epsilon_end = it_epsilon_begin->cbedgin; it_epsilon_end != it_epsilon_begin->cend(); ++it_epsilon_end) {
+                // On est à l'état final de la transition.
+                out << *it_epsilon_end << endl;
+            }
+        }
+    }
+    return out;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
