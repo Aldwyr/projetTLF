@@ -169,7 +169,20 @@ void Fermeture(const sAutoNDE& at, etatset_t& e){
   // Cette fonction clot l'ensemble d'états E={e_0, e_1, ... ,e_n} passé en
   // paramètre avec les epsilon transitions
 
-  //TODO définir cette fonction
+  //TODO tester cette fonction
+
+    for(auto it_e = e.begin(); it_e != e.end(); it_e++) {
+        // *it_e = un etat (size_t)
+        etatset_t transitions = at.epsilon[*it_e]; // les etats accessibles depuis un état donné par epsilon transition
+        bool repeat = false;
+        for(auto it_t = transitions.begin(); it_t != transitions.end(); it_t++) {
+            // si un de ces nouveaux états possède une epsilon transition, on effectue la fermeture de cet ensemble
+            if(!at.epsilon[*it_t].empty()) { repeat = true; break; }
+        }
+        if(repeat) { Fermeture(at, transitions); }
+        e.insert(transitions.begin(), transitions.end()); // on ajoute tous ces états à l'ensemble E
+    }
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -178,7 +191,22 @@ etatset_t Delta(const sAutoNDE& at, const etatset_t& e, symb_t c){
   //TODO sur la base de celle pour le cas sans transitions spontanées,
   // définir cette fonction en utilisant Fermeture
 
-  return e;
+    etatset_t delta; // variable de retour
+    etatset_t e_copy(e); // copie pour calculer la fermeture transitive
+
+    // on calcule tous les états accessibles sans lire un symbole dans un premier temps
+    Fermeture(at, e_copy);
+
+    for(auto it_e = e_copy.begin(); it_e != e_copy.end(); it_e++) {
+        // pour chacun des états, on ajoute à delta les états accessibles en lisant le symbole c
+        etatset_t transitions = at.trans[*it_e][c - ASCII_A];
+        delta.insert(transitions.begin(), transitions.end());
+    }
+
+    // on calcule les états accessibles après avoir lu ce symbole par epsilon transition
+    Fermeture(at, delta);
+
+  return delta;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
