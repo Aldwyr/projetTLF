@@ -169,7 +169,6 @@ void Fermeture(const sAutoNDE& at, etatset_t& e){
   // Cette fonction clot l'ensemble d'états E={e_0, e_1, ... ,e_n} passé en
   // paramètre avec les epsilon transitions
 
-  //TODO tester cette fonction
     unsigned long size = e.size();
 
     for(auto it_e = e.begin(); it_e != e.end(); it_e++) {
@@ -189,8 +188,6 @@ void Fermeture(const sAutoNDE& at, etatset_t& e){
 ////////////////////////////////////////////////////////////////////////////////
 
 etatset_t Delta(const sAutoNDE& at, const etatset_t& e, symb_t c){
-  //TODO sur la base de celle pour le cas sans transitions spontanées,
-  // définir cette fonction en utilisant Fermeture
 
     etatset_t delta; // variable de retour
     etatset_t e_copy(e); // copie pour calculer la fermeture transitive
@@ -223,7 +220,67 @@ bool Accept(const sAutoNDE& at, string str){
 sAutoNDE Determinize(const sAutoNDE& at){
   sAutoNDE r;
 
-  //TODO définir cette fonction
+  // TODO : tester cette fonction
+
+    map_t etats; // stocke les états du nouvel automate
+    // clé = l'ensemble des états, valeur = le nombre associé à cet ensemble (l'état)
+    // l'opérateur [] insère automatique la clé et met la valeur à 0
+
+    // première étape : déterminer les epsilon transitions de chaque état
+    etatset_t epsilon[at.nb_etats];
+    for(etat_t i = 0; i < at.nb_etats; i++) {
+        etatset_t f;
+        f.insert(i);
+        Fermeture(at, f);
+        epsilon[i] = f;
+    }
+
+    // on ajoute le premier etatset à la map : ce sera le premier état du nouvel automate, de valeur 0
+    etats[epsilon[0]] = 0;
+
+    // deuxième étape : on construit les états accessibles à partir de chaque ensemble de départ pour chaque symbole
+    etat_t next_value = 1; // prochain état qui sera construit
+    for(etat_t i = 0; i < at.nb_etats; i++) {
+        etatset_t e = epsilon[i];
+        r.trans.emplace_back(); // on ajoute un nouvel élément à la fin, autrement dit r.trans[i] est accessible
+        for(symb_t c = 0; c < at.nb_symbs; c++) {
+            etatset_t delta = Delta(at, e, c + ASCII_A);
+            etat_t value = etats[delta];
+            if(value == 0) {
+                // c'est la première fois qu'on insère delta, il faut donc lui donner un numéro
+                value = etats[delta] = next_value;
+                next_value++;
+            }
+            r.trans[i].emplace_back(); // r.trans[i][c] est accessible
+            r.trans[i][c].insert(value);
+        }
+    }
+
+    // troisième étape : on renseigne les informations de l'automate
+    r.nb_etats = etats.size();
+    r.nb_finaux = 0;
+    r.nb_symbs = at.nb_symbs;
+    bool initial_set = false;
+    for(auto it = etats.cbegin(); it != etats.cend(); it++) {
+        // it = <etatset_t, etat_t>
+        // it->first = etatset_t
+        // it->second = etat_t
+        if(!initial_set && it->first.find(at.initial) != it->first.end()) {
+            // nous n'avons pas encore assigné l'état initial et l'étatset courant contient l'ancien état initial
+            // donc le nouvel état initial est celui-ci
+            r.initial = it->second;
+            initial_set = true;
+        }
+        // on pourrait utiliser set_intersection ici
+        for(auto it_f = at.finaux.cbegin(); it_f != at.finaux.cend(); it_f++) {
+            if(it->first.find(*it_f) != it->first.end()) {
+                // l'étatset contient au moins un état final
+                r.finaux.insert(it->second);
+                r.nb_finaux++;
+                break;
+            }
+        }
+    }
 
   return r;
 }
