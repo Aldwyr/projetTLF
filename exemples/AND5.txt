@@ -1,15 +1,8 @@
-# (a* b*)
+﻿# (a* b*)
 2 2 2
-
-# état initial
 0
-
-# états finaux
 0
 1
-
-# tranitions
 0 a 0
 0 b 1
 1 b 1
-

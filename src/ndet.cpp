@@ -80,7 +80,7 @@ bool FromFile(sAutoNDE& at, string path){
         return false;
     // la deuxième ligne donne l'état initial
     do{ 
-      getline (myfile,line);
+      getline(myfile,line);
     } while (line.empty() || line[0]=='#');    
     iss.clear();
     iss.str(line);
@@ -90,7 +90,7 @@ bool FromFile(sAutoNDE& at, string path){
     // les autres lignes donnent les états finaux
     for(size_t i = 0; i < at.nb_finaux; i++){
         do{ 
-          getline (myfile,line);
+          getline(myfile,line);
         } while (line.empty() || line[0]=='#');
         iss.clear();
         iss.str(line);
@@ -109,7 +109,7 @@ bool FromFile(sAutoNDE& at, string path){
   // lecture de la relation de transition 
     while(myfile.good()){
       line.clear();
-      getline (myfile,line);
+      getline(myfile,line);
       if (line.empty() && line[0]=='#')
         continue;
       iss.clear();
@@ -210,9 +210,25 @@ etatset_t Delta(const sAutoNDE& at, const etatset_t& e, symb_t c){
 ////////////////////////////////////////////////////////////////////////////////
 
 bool Accept(const sAutoNDE& at, string str){
-  //TODO définir cette fonction
+	etatset_t initial; // pour stocker l'état initial. 
+	etatset_t deltaReturn; // pour récupérer la valeur de retour de Delta
 
-  return false;
+	initial.insert(at.initial);
+	deltaReturn = Delta(at, initial, str[0]);
+
+	for (int i = 1; i < (int)str.size(); i++) {
+		deltaReturn = Delta(at, deltaReturn, str[i]);
+		if (deltaReturn.empty())
+			return false;
+    }
+
+	for (auto i = deltaReturn.cbegin(); i != deltaReturn.cend(); i++) {
+		for (auto x = at.finaux.cbegin(); x != at.finaux.cend(); x++) {
+			if (*i == *x)
+				return true;
+		}
+	}
+	return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
