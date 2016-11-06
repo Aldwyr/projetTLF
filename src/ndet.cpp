@@ -170,13 +170,18 @@ void Fermeture(const sAutoNDE& at, etatset_t& e){
   // paramètre avec les epsilon transitions
 
   //TODO tester cette fonction
-
+    unsigned long size = e.size();
 
     for(auto it_e = e.begin(); it_e != e.end(); it_e++) {
         // *it_e = un etat (size_t)
         etatset_t transitions = at.epsilon[*it_e]; // les etats accessibles depuis un état donné par epsilon transition
         e.insert(transitions.begin(), transitions.end()); // on ajoute tous ces états à l'ensemble E
-        // si un élément est ajouté, la boucle for passera par cet élément également et ajoutera donc ses epsilon transitions
+    }
+
+    if(size != e.size()) {
+        // il y a de nouveaux éléments, on doit effectuer leur fermeture transitive également
+        Fermeture(at, e);
+        // TODO : optimiser cet appel récursif, va recalculer également les éléments déjà présents
     }
 
 }
