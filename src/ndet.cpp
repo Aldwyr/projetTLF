@@ -1,4 +1,4 @@
-    #include <iostream>
+#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
@@ -102,15 +102,25 @@ bool FromFile(sAutoNDE& at, string path){
 
     // on alloue les vectors à la taille connue à l'avance pour éviter les resize dynamiques
     at.epsilon.resize(at.nb_etats);
+    for(size_t i = 0; i < at.nb_etats; i++) {
+        at.epsilon.push_back({});
+    }
     at.trans.resize(at.nb_etats);
-    for(size_t i=0;i<at.nb_etats;++i)
-      at.trans[i].resize(at.nb_symbs);   
+    for(size_t i = 0; i < at.nb_etats; i++) {
+        at.trans.push_back({});
+    }
+    for(size_t i=0;i<at.nb_etats;++i) {
+        at.trans[i].resize(at.nb_symbs);
+        for(size_t j = 0; j < at.nb_symbs; j++) {
+            at.trans[i].push_back({});
+        }
+    }
 
   // lecture de la relation de transition 
     while(myfile.good()){
       line.clear();
       getline(myfile,line);
-      if (line.empty() && line[0]=='#')
+      if (line.empty() || line[0]=='#')
         continue;
       iss.clear();
       iss.str(line); 
@@ -173,8 +183,11 @@ void Fermeture(const sAutoNDE& at, etatset_t& e){
 
     for(auto it_e = e.begin(); it_e != e.end(); it_e++) {
         // *it_e = un etat (size_t)
+        //cout << *it_e << " ";
         etatset_t transitions = at.epsilon[*it_e]; // les etats accessibles depuis un état donné par epsilon transition
+        //cout << "transitions trouvées ";
         e.insert(transitions.begin(), transitions.end()); // on ajoute tous ces états à l'ensemble E
+        //cout << "transitions insérées\n";
     }
 
     if(size != e.size()) {
@@ -252,41 +265,46 @@ sAutoNDE Determinize(const sAutoNDE& at){
     }
 
     // on ajoute le premier etatset à la map : ce sera le premier état du nouvel automate, de valeur 0
-    etats[epsilon[0]] = 0;
+    etats[epsilon[at.initial]] = 0;
 
-    // deuxième étape : on construit les états accessibles à partir de chaque ensemble de départ pour chaque symbole
-    etat_t next_value = 1; // prochain état qui sera construit
-    for(etat_t i = 0; i < at.nb_etats; i++) {
-        etatset_t e = epsilon[i];
-        r.trans.emplace_back(); // on ajoute un nouvel élément à la fin, autrement dit r.trans[i] est accessible
+    // deuxième étape : on part du nouvel état initial, et on cherche ses transitions.
+    // pour chaque ensemble d'états trouvé, s'il n'est pas déjà présent dans l'automate on l'ajoute à la queue
+    queue<etatset_t> queue;
+    queue.push(epsilon[at.initial]);
+    etat_t next_value = 1;
+    unsigned int i = 0;
+    while(!queue.empty()) {
+        // on travaille sur un nouvel état pas encore ajouté dans l'automate (mais présent dans le map)
+        r.trans.emplace_back(); // on peut accéder à r.trans[i]
+        etatset_t e = queue.front();
+        assert(i == etats[e]);
         for(symb_t c = 0; c < at.nb_symbs; c++) {
+            // on calcule les transitions pour chaque symbole
             etatset_t delta = Delta(at, e, c + ASCII_A);
-            etat_t value = etats[delta];
-            if(value == 0) {
-                // c'est la première fois qu'on insère delta, il faut donc lui donner un numéro
+            etat_t value = etats[delta]; // le numéro du prochain état (insère l'état si besoin et renvoie 0 dans ce cas)
+            if(value == 0 && !(delta == epsilon[at.initial])) { // set implémente operator==
+                // si delta n'est pas l'état initial et que sa valeur est 0, alors c'est la première fois qu'on
+                // trouve cet ensemble, on lui donne un numéro et on l'ajoute à la queue
                 value = etats[delta] = next_value;
                 next_value++;
+                queue.push(delta);
             }
-            r.trans[i].emplace_back(); // r.trans[i][c] est accessible
+            r.trans[i].emplace_back(); // on peut accéder à r.trans[i][c]
             r.trans[i][c].insert(value);
         }
+        i++;
+        queue.pop();
     }
 
     // troisième étape : on renseigne les informations de l'automate
     r.nb_etats = etats.size();
     r.nb_finaux = 0;
     r.nb_symbs = at.nb_symbs;
-    bool initial_set = false;
+    r.initial = 0;
     for(auto it = etats.cbegin(); it != etats.cend(); it++) {
         // it = <etatset_t, etat_t>
         // it->first = etatset_t
         // it->second = etat_t
-        if(!initial_set && it->first.find(at.initial) != it->first.end()) {
-            // nous n'avons pas encore assigné l'état initial et l'étatset courant contient l'ancien état initial
-            // donc le nouvel état initial est celui-ci
-            r.initial = it->second;
-            initial_set = true;
-        }
         // on pourrait utiliser set_intersection ici
         for(auto it_f = at.finaux.cbegin(); it_f != at.finaux.cend(); it_f++) {
             if(it->first.find(*it_f) != it->first.end()) {
