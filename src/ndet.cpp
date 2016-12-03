@@ -101,22 +101,12 @@ bool FromFile(sAutoNDE& at, string path){
     }     
 
     // on alloue les vectors à la taille connue à l'avance pour éviter les resize dynamiques
-    at.epsilon.resize(at.nb_etats);
-    for(size_t i = 0; i < at.nb_etats; i++) {
-        at.epsilon.push_back({});
-    }
-    at.trans.resize(at.nb_etats);
-    for(size_t i = 0; i < at.nb_etats; i++) {
-        at.trans.push_back({});
-    }
-    for(size_t i=0;i<at.nb_etats;++i) {
-        at.trans[i].resize(at.nb_symbs);
-        for(size_t j = 0; j < at.nb_symbs; j++) {
-            at.trans[i].push_back({});
-        }
-    }
+      at.epsilon.resize(at.nb_etats);
+      at.trans.resize(at.nb_etats);
+      for(size_t i=0;i<at.nb_etats;++i)
+          at.trans[i].resize(at.nb_symbs);
 
-  // lecture de la relation de transition 
+      // lecture de la relation de transition
     while(myfile.good()){
       line.clear();
       getline(myfile,line);
@@ -161,7 +151,7 @@ bool EstDeterministe(const sAutoNDE& at){
 	  if(it_e->size() > 0) { return false; }
   }
   
-  // trans = vector<vector<set<int>>> = [s][a]<t>
+  // trans = vector<vector<set<int>>> = [s][a]<t
   for(auto it = at.trans.cbegin(); it != at.trans.cend(); it++) {
 	  // it = itérateur sur vector<set<int>> = état de départ
 	  for(auto it2 = it->cbegin(); it2 != it->cend(); it2++) {
@@ -193,7 +183,6 @@ void Fermeture(const sAutoNDE& at, etatset_t& e){
     if(size != e.size()) {
         // il y a de nouveaux éléments, on doit effectuer leur fermeture transitive également
         Fermeture(at, e);
-        // TODO : optimiser cet appel récursif, va recalculer également les éléments déjà présents
     }
 
 }
@@ -248,8 +237,6 @@ bool Accept(const sAutoNDE& at, string str){
 
 sAutoNDE Determinize(const sAutoNDE& at){
   sAutoNDE r;
-
-  // TODO : tester cette fonction
 
     map_t etats; // stocke les états du nouvel automate
     // clé = l'ensemble des états, valeur = le nombre associé à cet ensemble (l'état)
@@ -446,17 +433,66 @@ sAutoNDE Append(const sAutoNDE& x, const sAutoNDE& y){
 
   //TODO définir cette fonction
 
+  r.nb_symbs = x.nb_symbs;
+  r.epsilon.resize(x.nb_etats + y.nb_etats);
+  r.trans.resize(x.nb_etats + y.nb_etats);
+  for(size_t i = 0; i < x.nb_etats + y.nb_etats; i++) {
+	  r.trans[i].resize(r.nb_symbs);
+  }
+
+  etatset_t etats;
+  for(size_t i = 0; i < x.nb_etats; i++) {
+	  for(char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
+		  etats = x.trans[i][c];
+		  r.trans[i][c].insert(etats.cbegin(), etats.cend());
+	  }
+	  etats = x.epsilon[i];
+	  r.epsilon[i].insert(etats.cbegin(), etats.cend());
+  }
+
+  for(size_t i = 0; i < y.nb_etats; i++) {
+	  for(char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
+		  etats = y.trans[i][c];
+		  r.trans[i+x.nb_etats][c].insert(etats.cbegin(), etats.cend());
+	  }
+	  etats = y.epsilon[i];
+	  r.epsilon[i+x.nb_etats].insert(etats.cbegin(), etats.cend());
+  }
+
   return r;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 sAutoNDE Union(const sAutoNDE& x, const sAutoNDE& y){
-  assert(x.nb_symbs == y.nb_symbs);
-  sAutoNDE r = Append(x, y);
+	assert(x.nb_symbs == y.nb_symbs);
+	sAutoNDE r = Append(x, y);
 
-  //TODO définir cette fonction
+	//TODO tester cette fonction
 
+	etatset_t etats;
+	vector<etatset_t> transitions;
+	for(char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
+		transitions.emplace_back(etats);
+	}
+	r.trans.emplace_back(transitions); // on crée un nouvel état sans transitions
+
+	etats.emplace(x.initial);
+	etats.emplace(y.initial + x.nb_etats);
+	r.epsilon.emplace_back(etats); // on ajoute des epsilon transitions du nouvel état
+	// vers les précédents initiaux
+
+	r.initial = x.nb_etats + y.nb_etats; // l'état initial est ce nouvel état
+	r.nb_etats = x.nb_etats + y.nb_etats +1;
+
+	for(auto it = x.finaux.cbegin(); it != x.finaux.cend(); it++) {
+		r.finaux.emplace(*it);
+	}
+	for(auto it = y.finaux.cbegin(); it != y.finaux.cend(); it++) {
+		r.finaux.emplace(*it);
+	}
+	r.nb_finaux = x.nb_finaux + y.nb_finaux;
+  
   return r;
 }
 
@@ -529,9 +565,42 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 
 bool Equivalent(const sAutoNDE& a1, const sAutoNDE& a2) {
 
-  //TODO définir cette fonction
+	//FIXME : et si les automates ont un nombre différent de symboles?
+	const char LAST = ASCII_A + a1.nb_symbs - 1;
+	int word_max_size = max(a1.nb_etats, a2.nb_etats);
+	for(int i = 1; i <= word_max_size; i++) {
+		// i = la taille du mot
+		char* word = (char*) malloc(i+1);
+		for(int j = 0; j < i; j++) { word[j] = ASCII_A; }
+		word[i] = '\0';
+		int index; // index est la position de la lettre à modifier
+		do {
+			index = i-1;
 
-  return false;
+			// on change la dernière lettre
+			for(char c = ASCII_A; c <= LAST; c++) {
+				word[i-1] = c;
+				std::cout << string(word) << std::endl; // on vient de générer un nouveau mot, on l'affiche
+				if(Accept(a1, string(word)) != Accept(a2, string(word))) { free(word); return false; }
+			}
+
+			while(index >= 0 && word[index] == LAST) {
+				// la lettre est la dernière de l'alphabet, on la remet au début 'a' et on passe à la lettre d'avant
+				word[index] = ASCII_A;
+				index--;
+			}
+			if(index >= 0) {
+				word[index]++;
+				// index est la dernière lettre n'étant pas au bout de sa boucle, on l'incrémente
+				// et on recommence le traitement
+			}
+		  
+		} while (index >= 0);
+
+		free(word);
+	}
+  
+	return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
