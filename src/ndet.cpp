@@ -425,41 +425,44 @@ bool ToGraph(sAutoNDE& at, string path){
 // -----------------------------------------------------------------------------
 
 sAutoNDE Append(const sAutoNDE& x, const sAutoNDE& y){
-  // fonction outil : on garde x, et on "ajoute" trans et epsilon de y
-  // en renommant ses états, id est en décallant les indices des états de y
-  // de x.nb_etats 
-  assert(x.nb_symbs == y.nb_symbs);
-  sAutoNDE r;
+    // fonction outil : on garde x, et on "ajoute" trans et epsilon de y
+    // en renommant ses états, id est en décallant les indices des états de y
+    // de x.nb_etats
+    assert(x.nb_symbs == y.nb_symbs);
+    sAutoNDE r;
 
-  //TODO définir cette fonction
+    //TODO tester cette fonction
 
-  r.nb_symbs = x.nb_symbs;
-  r.epsilon.resize(x.nb_etats + y.nb_etats);
-  r.trans.resize(x.nb_etats + y.nb_etats);
-  for(size_t i = 0; i < x.nb_etats + y.nb_etats; i++) {
-	  r.trans[i].resize(r.nb_symbs);
-  }
+    r.nb_symbs = x.nb_symbs;
+    r.epsilon.resize(x.nb_etats + y.nb_etats);
+    r.trans.resize(x.nb_etats + y.nb_etats);
+    // on resize à l'avance
+    for(size_t i = 0; i < x.nb_etats + y.nb_etats; i++) {
+	    r.trans[i].resize(r.nb_symbs);
+    }
 
-  etatset_t etats;
-  for(size_t i = 0; i < x.nb_etats; i++) {
-	  for(char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
-		  etats = x.trans[i][c];
-		  r.trans[i][c].insert(etats.cbegin(), etats.cend());
-	  }
-	  etats = x.epsilon[i];
-	  r.epsilon[i].insert(etats.cbegin(), etats.cend());
-  }
+    etatset_t etats;
+    // on ajoute les états de x
+    for(size_t i = 0; i < x.nb_etats; i++) {
+	    for(char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
+		    etats = x.trans[i][c];
+		    r.trans[i][c].insert(etats.cbegin(), etats.cend());
+        }
+        etats = x.epsilon[i];
+        r.epsilon[i].insert(etats.cbegin(), etats.cend());
+    }
 
-  for(size_t i = 0; i < y.nb_etats; i++) {
-	  for(char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
-		  etats = y.trans[i][c];
-		  r.trans[i+x.nb_etats][c].insert(etats.cbegin(), etats.cend());
-	  }
-	  etats = y.epsilon[i];
-	  r.epsilon[i+x.nb_etats].insert(etats.cbegin(), etats.cend());
-  }
+    // on ajoute les états de y
+    for(size_t i = 0; i < y.nb_etats; i++) {
+        for(char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
+            etats = y.trans[i][c];
+            r.trans[i+x.nb_etats][c].insert(etats.cbegin(), etats.cend());
+        }
+        etats = y.epsilon[i];
+        r.epsilon[i+x.nb_etats].insert(etats.cbegin(), etats.cend());
+    }
 
-  return r;
+    return r;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -499,12 +502,24 @@ sAutoNDE Union(const sAutoNDE& x, const sAutoNDE& y){
 ////////////////////////////////////////////////////////////////////////////////
 
 sAutoNDE Concat(const sAutoNDE& x, const sAutoNDE& y){
-  assert(x.nb_symbs == y.nb_symbs);
-  sAutoNDE r = Append(x, y);
+    assert(x.nb_symbs == y.nb_symbs);
+    sAutoNDE r = Append(x, y);
 
-  //TODO définir cette fonction
+    //TODO tester cette fonction
 
-  return r;
+    for(auto it = x.finaux.cbegin(); it != x.finaux.cend(); it++) {
+        // on ajoute une epsilon transition vers l'initial de y
+        r.epsilon[*it].insert(x.nb_etats + y.initial);
+    }
+
+    for(auto it = y.finaux.cbegin(); it != y.finaux.cend(); it++) {
+        // les états finaux de r sont les états finaux de y
+        r.finaux.insert(x.nb_etats + *it);
+    }
+
+    r.initial = x.initial;
+
+    return r;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -534,19 +549,52 @@ sAutoNDE Intersection(const sAutoNDE& x, const sAutoNDE& y){
 
 ////////////////////////////////////////////////////////////////////////////////
 
+sAutoNDE expr2Aut(sExpressionRationnelle er) {
+    sAutoNDE r;
+    switch(er->op) {
+        case o_variable:
+            // TODO : récupérer le symbole à partir de nom
+            // soit c est un e (epsilon), soit c appartient à { a, b, c, d }
+			/*char c = er->nom[0];
+			assert(c < 'e');
+			size_t nb_symbs = c - ASCII_A + 1;
+            r.trans.resize(2);
+            r.trans[0].resize(nb_symbs);
+			r.trans[1].resize(nb_symbs);
+			r.epsilon.resize(2);
+			r.trans[0][c - ASCII_A].insert(1);
+			r.initial = 0;
+			r.finaux.insert(1);
+			 */
+			break;
+        case o_ou:
+            r = Union(expr2Aut(er->arg1), expr2Aut(er->arg2));
+            break;
+        case o_concat:
+            r = Concat(expr2Aut(er->arg1), expr2Aut(er->arg2));
+            break;
+        case o_etoile:
+            r = Kleene(expr2Aut(er->arg));
+            break;
+    }
+    return r;
+}
+
 sAutoNDE ExpressionRationnelle2Automate(string expr){
-  cout << "Construction d'un automate à partir d'une expression rationnelle\n";
-  cout << "  Expression en entrée (string) : " << expr << endl;
+    cout << "Construction d'un automate à partir d'une expression rationnelle\n";
+    cout << "  Expression en entrée (string) : " << expr << endl;
 
-  sExpressionRationnelle er = lit_expression_rationnelle(expr);
+    sExpressionRationnelle er = lit_expression_rationnelle(expr);
 
-  cout << "  Expression en entrée (ASA)    : " << er << endl;
+    cout << "  Expression en entrée (ASA)    : " << er << endl;
 
-  sAutoNDE r;
+    sAutoNDE r;
 
-  //TODO définir cette fonction
+    //TODO définir cette fonction
 
-  return r;
+    r = expr2Aut(er);
+
+    return r;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -567,8 +615,8 @@ bool Equivalent(const sAutoNDE& a1, const sAutoNDE& a2) {
 
 	//FIXME : et si les automates ont un nombre différent de symboles?
 	const char LAST = ASCII_A + a1.nb_symbs - 1;
-	int word_max_size = max(a1.nb_etats, a2.nb_etats);
-	for(int i = 1; i <= word_max_size; i++) {
+	size_t word_max_size = max(a1.nb_etats, a2.nb_etats);
+	for(size_t i = 1; i <= word_max_size; i++) {
 		// i = la taille du mot
 		char* word = (char*) malloc(i+1);
 		for(int j = 0; j < i; j++) { word[j] = ASCII_A; }
