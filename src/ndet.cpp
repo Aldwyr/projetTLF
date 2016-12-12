@@ -444,7 +444,7 @@ sAutoNDE Append(const sAutoNDE& x, const sAutoNDE& y){
     etatset_t etats;
     // on ajoute les états de x
     for(size_t i = 0; i < x.nb_etats; i++) {
-	    for(char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
+	    for(unsigned char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
 		    etats = x.trans[i][c];
 		    r.trans[i][c].insert(etats.cbegin(), etats.cend());
         }
@@ -454,7 +454,7 @@ sAutoNDE Append(const sAutoNDE& x, const sAutoNDE& y){
 
     // on ajoute les états de y
     for(size_t i = 0; i < y.nb_etats; i++) {
-        for(char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
+        for(unsigned char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
             etats = y.trans[i][c];
             r.trans[i+x.nb_etats][c].insert(etats.cbegin(), etats.cend());
         }
@@ -475,7 +475,7 @@ sAutoNDE Union(const sAutoNDE& x, const sAutoNDE& y){
 
 	etatset_t etats;
 	vector<etatset_t> transitions;
-	for(char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
+	for(unsigned char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
 		transitions.emplace_back(etats);
 	}
 	r.trans.emplace_back(transitions); // on crée un nouvel état sans transitions
@@ -525,9 +525,27 @@ sAutoNDE Concat(const sAutoNDE& x, const sAutoNDE& y){
 ////////////////////////////////////////////////////////////////////////////////
 
 sAutoNDE Complement(const sAutoNDE& x){
-  //TODO définir cette fonction
+  //TODO tester cette fonction
 
-  return x;
+	// il faut que l'automate x soit déterministe
+	assert(EstDeterministe(x));
+	sAutoNDE r;
+	r.nb_symbs = x.nb_symbs;
+	r.nb_etats = x.nb_etats;
+	r.nb_finaux = x.nb_etats - x.nb_finaux;
+	r.initial = x.initial;
+	r.trans = x.trans;
+	r.epsilon = x.epsilon;
+
+	for(unsigned int i = 0; i < r.nb_etats; i++) {
+		std::set<etat_t>::iterator it = r.finaux.find(i);
+		if(it == r.finaux.end()) {
+			// l'état numéro i n'est pas dans la liste des finaux de x
+			r.finaux.insert(i);
+		}
+	}
+
+  return r;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -552,30 +570,41 @@ sAutoNDE Intersection(const sAutoNDE& x, const sAutoNDE& y){
 sAutoNDE expr2Aut(sExpressionRationnelle er) {
     sAutoNDE r;
     switch(er->op) {
-        case o_variable:
-            // TODO : récupérer le symbole à partir de nom
-            // soit c est un e (epsilon), soit c appartient à { a, b, c, d }
-			/*char c = er->nom[0];
-			assert(c < 'e');
-			size_t nb_symbs = c - ASCII_A + 1;
-            r.trans.resize(2);
-            r.trans[0].resize(nb_symbs);
-			r.trans[1].resize(nb_symbs);
-			r.epsilon.resize(2);
-			r.trans[0][c - ASCII_A].insert(1);
-			r.initial = 0;
-			r.finaux.insert(1);
-			 */
-			break;
-        case o_ou:
-            r = Union(expr2Aut(er->arg1), expr2Aut(er->arg2));
-            break;
-        case o_concat:
-            r = Concat(expr2Aut(er->arg1), expr2Aut(er->arg2));
-            break;
-        case o_etoile:
-            r = Kleene(expr2Aut(er->arg));
-            break;
+        case o_variable: {
+	        char c = er->nom->at(0);
+	        r.trans.resize(2);
+	        r.nb_symbs = 4; // on précise a, b, c, d par défaut pour que les concat et union se passent bien
+	        r.trans[0].resize(r.nb_symbs);
+	        r.trans[1].resize(r.nb_symbs);
+	        r.epsilon.resize(2);
+	        r.initial = 0;
+	        r.finaux.insert(1);
+	        if (c < 'e') {
+		        // il s'agit d'une transition normale
+		        r.trans[0][c - ASCII_A].insert(1);
+	        } else {
+		        // il s'agit d'une epsilon transition
+		        assert(c == 'e');
+		        r.epsilon[0].insert(1);
+	        }
+	        break;
+        }
+        case o_ou: {
+	        r = Union(expr2Aut(er->arg1), expr2Aut(er->arg2));
+	        break;
+        }
+        case o_concat: {
+	        r = Concat(expr2Aut(er->arg1), expr2Aut(er->arg2));
+	        break;
+        }
+        case o_etoile: {
+	        r = Kleene(expr2Aut(er->arg));
+	        break;
+        }
+	    default: {
+		    assert(false);
+		    // erreur
+	    }
     }
     return r;
 }
@@ -590,7 +619,7 @@ sAutoNDE ExpressionRationnelle2Automate(string expr){
 
     sAutoNDE r;
 
-    //TODO définir cette fonction
+    //TODO tester cette fonction
 
     r = expr2Aut(er);
 
@@ -614,21 +643,21 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 bool Equivalent(const sAutoNDE& a1, const sAutoNDE& a2) {
 
 	//FIXME : et si les automates ont un nombre différent de symboles?
-	const char LAST = ASCII_A + a1.nb_symbs - 1;
+	const size_t LAST = ASCII_A + a1.nb_symbs - 1;
 	size_t word_max_size = max(a1.nb_etats, a2.nb_etats);
 	for(size_t i = 1; i <= word_max_size; i++) {
 		// i = la taille du mot
 		char* word = (char*) malloc(i+1);
-		for(int j = 0; j < i; j++) { word[j] = ASCII_A; }
+		for(size_t j = 0; j < i; j++) { word[j] = ASCII_A; }
 		word[i] = '\0';
 		int index; // index est la position de la lettre à modifier
 		do {
 			index = i-1;
 
 			// on change la dernière lettre
-			for(char c = ASCII_A; c <= LAST; c++) {
+			for(unsigned char c = ASCII_A; c <= LAST; c++) {
 				word[i-1] = c;
-				std::cout << string(word) << std::endl; // on vient de générer un nouveau mot, on l'affiche
+				//std::cout << string(word) << std::endl; // on vient de générer un nouveau mot
 				if(Accept(a1, string(word)) != Accept(a2, string(word))) { free(word); return false; }
 			}
 
