@@ -444,9 +444,9 @@ sAutoNDE Append(const sAutoNDE& x, const sAutoNDE& y){
     etatset_t etats;
     // on ajoute les états de x
     for(size_t i = 0; i < x.nb_etats; i++) {
-	    for(unsigned char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
+	    for(unsigned char c = 0; c < r.nb_symbs; c++) {
 		    etats = x.trans[i][c];
-		    r.trans[i][c].insert(etats.cbegin(), etats.cend());
+		    r.trans[i][c].insert(etats.begin(), etats.end());
         }
         etats = x.epsilon[i];
         r.epsilon[i].insert(etats.cbegin(), etats.cend());
@@ -454,9 +454,11 @@ sAutoNDE Append(const sAutoNDE& x, const sAutoNDE& y){
 
     // on ajoute les états de y
     for(size_t i = 0; i < y.nb_etats; i++) {
-        for(unsigned char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
+        for(unsigned char c = 0; c < r.nb_symbs; c++) {
             etats = y.trans[i][c];
-            r.trans[i+x.nb_etats][c].insert(etats.cbegin(), etats.cend());
+	        for(auto it_e = etats.cbegin(); it_e != etats.cend(); it_e++) {
+		        r.trans[i+x.nb_etats][c].insert(*it_e + x.nb_etats);
+	        }
         }
         etats = y.epsilon[i];
         r.epsilon[i+x.nb_etats].insert(etats.cbegin(), etats.cend());
@@ -476,13 +478,13 @@ sAutoNDE Union(const sAutoNDE& x, const sAutoNDE& y){
 	etatset_t etats;
 	vector<etatset_t> transitions;
 	for(unsigned char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
-		transitions.emplace_back(etats);
+		transitions.push_back(etats);
 	}
-	r.trans.emplace_back(transitions); // on crée un nouvel état sans transitions
+	r.trans.push_back(transitions); // on crée un nouvel état sans transitions
 
 	etats.emplace(x.initial);
 	etats.emplace(y.initial + x.nb_etats);
-	r.epsilon.emplace_back(etats); // on ajoute des epsilon transitions du nouvel état
+	r.epsilon.push_back(etats); // on ajoute des epsilon transitions du nouvel état
 	// vers les précédents initiaux
 
 	r.initial = x.nb_etats + y.nb_etats; // l'état initial est ce nouvel état
@@ -492,7 +494,7 @@ sAutoNDE Union(const sAutoNDE& x, const sAutoNDE& y){
 		r.finaux.emplace(*it);
 	}
 	for(auto it = y.finaux.cbegin(); it != y.finaux.cend(); it++) {
-		r.finaux.emplace(*it);
+		r.finaux.emplace(*it + x.nb_etats);
 	}
 	r.nb_finaux = x.nb_finaux + y.nb_finaux;
   
@@ -507,14 +509,17 @@ sAutoNDE Concat(const sAutoNDE& x, const sAutoNDE& y){
 
     //TODO tester cette fonction
 
+	r.nb_etats = x.nb_etats + y.nb_etats;
     for(auto it = x.finaux.cbegin(); it != x.finaux.cend(); it++) {
         // on ajoute une epsilon transition vers l'initial de y
         r.epsilon[*it].insert(x.nb_etats + y.initial);
     }
 
+	r.nb_finaux = 0;
     for(auto it = y.finaux.cbegin(); it != y.finaux.cend(); it++) {
         // les états finaux de r sont les états finaux de y
         r.finaux.insert(x.nb_etats + *it);
+	    r.nb_finaux++;
     }
 
     r.initial = x.initial;
@@ -573,12 +578,14 @@ sAutoNDE expr2Aut(sExpressionRationnelle er) {
         case o_variable: {
 	        char c = er->nom->at(0);
 	        r.trans.resize(2);
+	        r.nb_etats = 2;
 	        r.nb_symbs = 4; // on précise a, b, c, d par défaut pour que les concat et union se passent bien
 	        r.trans[0].resize(r.nb_symbs);
 	        r.trans[1].resize(r.nb_symbs);
 	        r.epsilon.resize(2);
 	        r.initial = 0;
 	        r.finaux.insert(1);
+	        r.nb_finaux = 1;
 	        if (c < 'e') {
 		        // il s'agit d'une transition normale
 		        r.trans[0][c - ASCII_A].insert(1);
@@ -594,7 +601,9 @@ sAutoNDE expr2Aut(sExpressionRationnelle er) {
 	        break;
         }
         case o_concat: {
-	        r = Concat(expr2Aut(er->arg1), expr2Aut(er->arg2));
+	        sAutoNDE r1 = expr2Aut(er->arg1);
+	        sAutoNDE r2 = expr2Aut(er->arg2);
+	        r = Concat(r1,r2);
 	        break;
         }
         case o_etoile: {
@@ -629,13 +638,38 @@ sAutoNDE ExpressionRationnelle2Automate(string expr){
 ////////////////////////////////////////////////////////////////////////////////
 
 string Automate2ExpressionRationnelle(sAutoNDE at){
-  cout << "Construction d'une expression rationnelle à partir d'un automate\n";
+    cout << "Construction d'une expression rationnelle à partir d'un automate\n";
 
-  string sr;
+    string sr;
 
-  //TODO définir cette fonction
+    //TODO définir cette fonction
+	// on arrange l'automate
+    vector<etatset_t> v; // vector vide (pour trans)
+	etatset_t s; // set vide (pour epsilon)
+	at.nb_etats += 2; // on va ajouter deux états
+	at.trans.insert(at.trans.begin(), v); // on décale les états de 1
+	at.epsilon.insert(at.epsilon.begin(), s);
+	at.epsilon[0].insert(at.initial); // le nouvel état 0 a une transition-epsilon vers l'ancien état initial
+	at.initial = 0;
+	at.trans.push_back(v); // on ajoute un nouvel état (le nouvel état final)
+	at.epsilon.push_back(s);
+	for(auto it = at.finaux.cbegin(); it != at.finaux.cend(); it++) {
+		// chaque état final aura une epsilon-transition vers le nouvel état
+		at.epsilon[*it].insert(at.nb_etats-1);
+	}
+	at.finaux.clear();
+	at.finaux.insert(at.nb_etats-1);
 
-  return sr;
+	// TODO : calculer les R(i,j,k)
+	for(int k = 0; k < at.nb_etats; k++) {
+		for(int i = 0; i < at.nb_etats; i++) {
+			for(int j = 0; j < at.nb_etats; j++) {
+				// rappel : R(i,j,k) = R(i,j,k-1) U R(i,k,k-1)R(k,k,k-1)* R(k,j,k-1)
+			}
+		}
+	}
+
+	return sr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
