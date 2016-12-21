@@ -461,7 +461,9 @@ sAutoNDE Append(const sAutoNDE& x, const sAutoNDE& y){
 	        }
         }
         etats = y.epsilon[i];
-        r.epsilon[i+x.nb_etats].insert(etats.cbegin(), etats.cend());
+        for(auto it_e = etats.cbegin(); it_e != etats.cend(); it_e++) {
+            r.epsilon[i+x.nb_etats].insert(*it_e + x.nb_etats);
+        }
     }
 
     return r;
@@ -477,9 +479,10 @@ sAutoNDE Union(const sAutoNDE& x, const sAutoNDE& y){
 
 	etatset_t etats;
 	vector<etatset_t> transitions;
-	for(unsigned char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
+	/*for(unsigned char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
 		transitions.push_back(etats);
-	}
+	}*/
+    transitions.resize(r.nb_symbs);
 	r.trans.push_back(transitions); // on crée un nouvel état sans transitions
 
 	etats.emplace(x.initial);
@@ -651,8 +654,8 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 	at.epsilon.insert(at.epsilon.begin(), s);
 	at.epsilon[0].insert(at.initial); // le nouvel état 0 a une transition-epsilon vers l'ancien état initial
 	at.initial = 0;
-	at.trans.push_back(v); // on ajoute un nouvel état (le nouvel état final)
-	at.epsilon.push_back(s);
+	at.trans.emplace_back(); // on ajoute un nouvel état (le nouvel état final)
+	at.epsilon.emplace_back();
 	for(auto it = at.finaux.cbegin(); it != at.finaux.cend(); it++) {
 		// chaque état final aura une epsilon-transition vers le nouvel état
 		at.epsilon[*it].insert(at.nb_etats-1);
@@ -661,9 +664,9 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 	at.finaux.insert(at.nb_etats-1);
 
 	// TODO : calculer les R(i,j,k)
-	for(int k = 0; k < at.nb_etats; k++) {
-		for(int i = 0; i < at.nb_etats; i++) {
-			for(int j = 0; j < at.nb_etats; j++) {
+	for(unsigned int k = 0; k < at.nb_etats; k++) {
+		for(unsigned int i = 0; i < at.nb_etats; i++) {
+			for(unsigned int j = 0; j < at.nb_etats; j++) {
 				// rappel : R(i,j,k) = R(i,j,k-1) U R(i,k,k-1)R(k,k,k-1)* R(k,j,k-1)
 			}
 		}
@@ -695,7 +698,7 @@ bool Equivalent(const sAutoNDE& a1, const sAutoNDE& a2) {
 				if(Accept(a1, string(word)) != Accept(a2, string(word))) { free(word); return false; }
 			}
 
-			while(index >= 0 && word[index] == LAST) {
+			while(index >= 0 && word[index] == (int) LAST) {
 				// la lettre est la dernière de l'alphabet, on la remet au début 'a' et on passe à la lettre d'avant
 				word[index] = ASCII_A;
 				index--;
