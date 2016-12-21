@@ -243,7 +243,8 @@ sAutoNDE Determinize(const sAutoNDE& at){
     // l'opérateur [] insère automatique la clé et met la valeur à 0
 
     // première étape : déterminer les epsilon transitions de chaque état
-    etatset_t epsilon[at.nb_etats];
+
+    etatset_t *epsilon = new etatset_t[at.nb_etats];
     for(etat_t i = 0; i < at.nb_etats; i++) {
         etatset_t f;
         f.insert(i);
@@ -663,13 +664,13 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
     at.finaux.insert(at.nb_etats-1);
 
     // TODO : calculer les R(i,j,k)
-    String R[at.nb_etats][at.nb_etats][at.nb_etats]; // pour remplir mon R.
+    vector< vector< vector<string> > > R;
     for(unsigned int k = 0; k < at.nb_etats; k++) {
         for(unsigned int i = 0; i < at.nb_etats; i++) {
             for(unsigned int j = 0; j < at.nb_etats; j++) {
                 // rappel : R(i,j,k) = R(i,j,k-1) U R(i,k,k-1)R(k,k,k-1)* R(k,j,k-1)
                 if (k == 0){
-                    for (int l = 0; l < at.nb_symbs; ++l) {
+                    for (unsigned int l = 0; l < at.nb_symbs; ++l) {
                         if (at.trans[i][l].find(j) != at.trans[i][l].end()) {
                             unSymboletrouve = true;
                             char c = l + ASCII_A;
@@ -679,10 +680,9 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
                                 R[i][j][k] += " | " + c;
                         }
                     }
-
                     if (at.epsilon[i].find(j) != at.epsilon.end()) {
                         if (unSymboletrouve)
-                            R[i][j][k] += " | " + "e";
+                            R[i][j][k] += " | e";
                         else
                             R[i][j][k] = "e";
                     }
@@ -693,7 +693,7 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
             unSymboletrouve = false;
         }
     }
-    printf("%s", R[0][at.nb_etats][at.nb_etats+1]);
+//    printf("%s", R[0][at.nb_etats][at.nb_etats+1]);
     return sr;
 }
 
