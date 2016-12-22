@@ -564,8 +564,8 @@ sAutoNDE Kleene(const sAutoNDE& x){
     for (auto it_x = x.trans.begin(); it_x != x.trans.end(); ++it_x) {
         res.trans.push_back(*it_x);
     }
-
-
+    res.trans.resize(res.nb_etats);
+    res.trans[res.initial].resize(res.nb_symbs);
     // On récupérer les transition epsilon de l'ancien automate.
     res.epsilon = x.epsilon;
     // On agrandit de 1 pour que l'état final puisse pointer vers l'état initial de x;
