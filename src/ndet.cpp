@@ -558,8 +558,34 @@ sAutoNDE Complement(const sAutoNDE& x){
 
 sAutoNDE Kleene(const sAutoNDE& x){
     //TODO définir cette fonction
+    sAutoNDE res;
 
-    return x;
+    res.initial = x.nb_etats;
+    res.nb_etats = x.nb_etats + 1;
+    res.nb_finaux = x.nb_finaux + 1;
+    res.nb_symbs = x.nb_symbs;
+
+
+    // On rajoute les transitions normal.
+    for (auto it_x = x.trans.begin(); it_x != x.trans.end(); ++it_x) {
+        res.trans.push_back(*it_x);
+    }
+
+
+    // On récupérer les transition epsilon de l'ancien automate.
+    res.epsilon = x.epsilon;
+    // On agrandit de 1 pour que l'état final puisse pointer vers l'état initial de x;
+    res.epsilon.resize(x.nb_etats + 1);
+    // On rajoute les état finaux de x et on donne une transition epsilon vers le nouvel état final de res
+    for (auto it_x = x.finaux.begin(); it_x != x.finaux.end(); ++it_x) {
+        res.finaux.insert(*it_x);
+        res.epsilon[*it_x].insert(res.initial);
+    }
+    res.finaux.insert(x.nb_etats);
+
+    res.epsilon[res.initial].insert(x.initial);  // on fait pointer l'état initial du nouvelle automate vers l'ancien état initial.
+
+    return res;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
