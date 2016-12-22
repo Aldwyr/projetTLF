@@ -243,7 +243,7 @@ sAutoNDE Determinize(const sAutoNDE& at){
     // l'opérateur [] insère automatique la clé et met la valeur à 0
 
     // première étape : déterminer les epsilon transitions de chaque état
-    etatset_t *epsilon = new etatset_t[at.nb_etats];
+    etatset_t epsilon[at.nb_etats];
     for(etat_t i = 0; i < at.nb_etats; i++) {
         etatset_t f;
         f.insert(i);
@@ -485,7 +485,7 @@ sAutoNDE Union(const sAutoNDE& x, const sAutoNDE& y){
 
     etats.emplace(x.initial);
     etats.emplace(y.initial + x.nb_etats);
-    r.epsilon.push_back(etats); // on ajoute des epsilon transitions du nouvel état
+    r.epsilon.push_back(etats); // on ajoute des epsilon transitions du nouvel état
     // vers les précédents initiaux
 
     r.initial = x.nb_etats + y.nb_etats; // l'état initial est ce nouvel état
@@ -669,24 +669,6 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
     cout << "Construction d'une expression rationnelle à partir d'un automate\n";
 
     string sr;
-    bool unSymboletrouve = false;
-
-    // on arrange l'automate
-    /*vector<etatset_t> v; // vector vide (pour trans)
-    etatset_t s; // set vide (pour epsilon)
-    at.nb_etats += 2; // on va ajouter deux états
-    at.trans.insert(at.trans.begin(), v); // on décale les états de 1
-    at.epsilon.insert(at.epsilon.begin(), s);
-    at.epsilon[0].insert(at.initial + 1); // le nouvel état 0 a une transition-epsilon vers l'ancien état initial
-    at.initial = 0;
-    at.trans.emplace_back(); // on ajoute un nouvel état (le nouvel état final)
-    at.epsilon.emplace_back();
-    for(auto it = at.finaux.cbegin(); it != at.finaux.cend(); it++) {
-        // chaque état final aura une epsilon-transition vers le nouvel état
-        at.epsilon[*it].insert(at.nb_etats-1);
-    }
-    at.finaux.clear();
-    at.finaux.insert(at.nb_etats-1);*/
 
 	sAutoNDE at2;
 	at2.nb_symbs = at.nb_symbs;
@@ -717,15 +699,9 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 	at2.epsilon.at(0).insert(at.initial + 1);
 
     // TODO : calculer les R(i,j,k)
-
-    vector<vector<vector <string> > > R;
-    R.resize(at2.nb_etats);
-    for (int l = 0; l < at2.nb_etats; ++l) {
-        R[l].resize(at2.nb_etats);
-    }
-//string R[at2.nb_etats][at2.nb_etats][at2.nb_etats]; // pour remplir mon R.
-	for(unsigned i = 0; i < at2.nb_etats; i++) {
-		for(unsigned j = 0; j < at2.nb_etats; j++) {
+    string R[at2.nb_etats][at2.nb_etats][at2.nb_etats];
+	for(unsigned i = 0; i < at2.nb_etats; i++) { // initialisation à une chaîne vide pour tester plus loin si
+		for(unsigned j = 0; j < at2.nb_etats; j++) { // on a déjà ajouté un élément ou non
 			for(unsigned k = 0; k < at2.nb_etats; k++) {
 				R[i][j][k] = "";
 			}
@@ -736,17 +712,22 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 		for(unsigned int c = 0; c < at2.nb_symbs; c++) {
 			for(auto it_j = at2.trans[i][c].cbegin(); it_j != at2.trans[i][c].cend(); it_j++) {
 				char symb = c + ASCII_A;
+				string s = string(1, symb);
 				if(R[i][*it_j][0] != "") {
-					R[i][*it_j][0] += " | " + symb;
+					// on a déjà une ou plusieurs transitions, on ajoute celle-ci
+					R[i][*it_j][0] += " | " + s;
 				} else {
-					R[i][*it_j][0] = symb + "";
+					R[i][*it_j][0] = s;
 				}
 			}
 		}
 		for(auto it_j = at2.epsilon[i].cbegin(); it_j != at2.epsilon[i].cend(); it_j++) {
 			if(R[i][*it_j][0] != "") {
+				// on a déjà une ou plusieurs transitions, on ajoute celle-ci
 				R[i][*it_j][0] += " | e";
-			} else { R[i][*it_j][0] = "e"; }
+			} else {
+				R[i][*it_j][0] = "e";
+			}
 		}
 	}
 
@@ -754,31 +735,42 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
         for(unsigned int i = 0; i < at2.nb_etats; i++) {
             for(unsigned int j = 0; j < at2.nb_etats; j++) {
                 // rappel : R(i,j,k) = R(i,j,k-1) U R(i,k,k-1)R(k,k,k-1)* R(k,j,k-1)
-                /*if (k == 0){
-                    for (int l = 0; l < at2.nb_symbs; ++l) {
-                        if (at2.trans.at(i).at(l).find(j) != at2.trans.at(i).at(l).end()) {
-                            unSymboletrouve = true;
-                            char c = l + ASCII_A;
-                            if (l == 0)
-                                R[i][j][k] = c;
-                            else
-                                R[i][j][k] += " | " + c;
-                        }
-                    }
 
-                    if (at2.epsilon.at(i).find(j) != at2.epsilon.at(i).end()) {
-                        if (unSymboletrouve)
-                            R[i][j][k] += " | e";
-                        else
-                            R[i][j][k] = "e";
-                    }
-                } else {*/
-                    R[i][j][k] = R[i][j][k-1] + " | " + R[i][k][k-1] + " (" + R[k][k][k-1]+ ")* "+ R[k][j][k-1];
-                //}
+	            string s1 = R[i][j][k-1];
+	            string s2 = R[i][k][k-1];
+	            string s3 = R[k][k][k-1];
+	            string s4 = R[k][j][k-1];
+	            string s5 = "";
+	            if(s2 != "") {
+		            // on ajoute s2 à s5
+		            s5 += s2;
+	            }
+	            if(s3 != "") {
+		            // on ajoute s3 à s5 et on met un point pour concaténer si s5 non vide
+		            if(s5 != "") { s5 += "."; }
+	                s5 += "(" + s3 + ")*";
+	            }
+	            if(s4 != "") {
+		            // on ajoute s4 à s5 et on met un point pour concaténer si s5 non vide
+	                if(s5 != "") { s5 += "."; }
+	                s5 += s4;
+	            }
+
+	            // on compare s1 et s5 et on met la bonne formule dans R[i][j][k]
+	            if(s1 == "") {
+		            // rien dans s1, donc on ne met que s5
+		            R[i][j][k] = s5;
+	            } else if(s5 == "" || s1 == s5) {
+		            // rien dans s5 ou s5 égal à s1, on ne met que s1
+		            R[i][j][k] = s1;
+	            } else {
+		            R[i][j][k] = s1 + " | " + s5;
+	            }
+	            //R[i][j][k] = R[i][j][k-1] + " | " + R[i][k][k-1] + " (" + R[k][k][k-1]+ ")* "+ R[k][j][k-1];R[i][j][k] = R[i][j][k-1] + " | " + R[i][k][k-1] + " (" + R[k][k][k-1]+ ")* "+ R[k][j][k-1];
+
+
 	            std::cout << R[i][j][k] << std::endl;
-	            //printf("%s", R[i][j][k]);
             }
-            unSymboletrouve = false;
         }
     }
 	sr =  R[0][at2.nb_etats-1][at2.nb_etats-1];
