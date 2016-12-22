@@ -243,7 +243,7 @@ sAutoNDE Determinize(const sAutoNDE& at){
     // l'opérateur [] insère automatique la clé et met la valeur à 0
 
     // première étape : déterminer les epsilon transitions de chaque état
-    etatset_t epsilon[at.nb_etats];
+    etatset_t *epsilon = new etatset_t[at.nb_etats];
     for(etat_t i = 0; i < at.nb_etats; i++) {
         etatset_t f;
         f.insert(i);
@@ -485,7 +485,7 @@ sAutoNDE Union(const sAutoNDE& x, const sAutoNDE& y){
 
     etats.emplace(x.initial);
     etats.emplace(y.initial + x.nb_etats);
-    r.epsilon.push_back(etats); // on ajoute des epsilon transitions du nouvel état
+    r.epsilon.push_back(etats); // on ajoute des epsilon transitions du nouvel état
     // vers les précédents initiaux
 
     r.initial = x.nb_etats + y.nb_etats; // l'état initial est ce nouvel état
@@ -558,8 +558,34 @@ sAutoNDE Complement(const sAutoNDE& x){
 
 sAutoNDE Kleene(const sAutoNDE& x){
     //TODO définir cette fonction
+    sAutoNDE res;
 
-    return x;
+    res.initial = x.nb_etats;
+    res.nb_etats = x.nb_etats + 1;
+    res.nb_finaux = x.nb_finaux + 1;
+    res.nb_symbs = x.nb_symbs;
+
+
+    // On rajoute les transitions normal.
+    for (auto it_x = x.trans.begin(); it_x != x.trans.end(); ++it_x) {
+        res.trans.push_back(*it_x);
+    }
+
+
+    // On récupérer les transition epsilon de l'ancien automate.
+    res.epsilon = x.epsilon;
+    // On agrandit de 1 pour que l'état final puisse pointer vers l'état initial de x;
+    res.epsilon.resize(x.nb_etats + 1);
+    // On rajoute les état finaux de x et on donne une transition epsilon vers le nouvel état final de res
+    for (auto it_x = x.finaux.begin(); it_x != x.finaux.end(); ++it_x) {
+        res.finaux.insert(*it_x);
+        res.epsilon[*it_x].insert(res.initial);
+    }
+    res.finaux.insert(x.nb_etats);
+
+    res.epsilon[res.initial].insert(x.initial);  // on fait pointer l'état initial du nouvelle automate vers l'ancien état initial.
+
+    return res;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -691,7 +717,13 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 	at2.epsilon.at(0).insert(at.initial + 1);
 
     // TODO : calculer les R(i,j,k)
-    string R[at2.nb_etats][at2.nb_etats][at2.nb_etats]; // pour remplir mon R.
+
+    vector<vector<vector <string> > > R;
+    R.resize(at2.nb_etats);
+    for (int l = 0; l < at2.nb_etats; ++l) {
+        R[l].resize(at2.nb_etats);
+    }
+//string R[at2.nb_etats][at2.nb_etats][at2.nb_etats]; // pour remplir mon R.
 	for(unsigned i = 0; i < at2.nb_etats; i++) {
 		for(unsigned j = 0; j < at2.nb_etats; j++) {
 			for(unsigned k = 0; k < at2.nb_etats; k++) {

@@ -3,8 +3,19 @@ project(projetTLF)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-add_custom_target(projetTLF COMMAND make -C ${projetTLF_SOURCE_DIR}
-                            CLION_EXE_DIR=${PROJET_BINARY_DIR})
+set(SOURCE_FILES
+        src/expression_rationnelle.cpp
+        src/expression_rationnelle.hpp
+        src/lex.yy.cpp
+        src/location.hh
+        src/ndet.cpp
+        src/parser.hpp
+        src/parser.lex
+        src/parser.tab.cpp
+        src/parser.tab.hpp
+        src/parser.y
+        src/parser_defs.hpp
+        src/position.hh
+        src/stack.hh)
 
-#set(SOURCE_FILES src/ndet.cpp)
-#add_executable(projetTLF ${SOURCE_FILES})
+add_executable(projetTLF ${SOURCE_FILES})
