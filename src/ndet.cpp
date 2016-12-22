@@ -243,7 +243,7 @@ sAutoNDE Determinize(const sAutoNDE& at){
     // l'opérateur [] insère automatique la clé et met la valeur à 0
 
     // première étape : déterminer les epsilon transitions de chaque état
-    etatset_t epsilon[at.nb_etats];
+    etatset_t* epsilon = new etatset_t[at.nb_etats];
     for(etat_t i = 0; i < at.nb_etats; i++) {
         etatset_t f;
         f.insert(i);
@@ -431,8 +431,6 @@ sAutoNDE Append(const sAutoNDE& x, const sAutoNDE& y){
     assert(x.nb_symbs == y.nb_symbs);
     sAutoNDE r;
 
-    //TODO tester cette fonction
-
     r.nb_symbs = x.nb_symbs;
     r.epsilon.resize(x.nb_etats + y.nb_etats);
     r.trans.resize(x.nb_etats + y.nb_etats);
@@ -477,9 +475,6 @@ sAutoNDE Union(const sAutoNDE& x, const sAutoNDE& y){
 
     etatset_t etats;
     vector<etatset_t> transitions;
-    /*for(unsigned char c = ASCII_A; c < ASCII_A + r.nb_symbs; c++) {
-        transitions.push_back(etats);
-    }*/
     transitions.resize(r.nb_symbs);
     r.trans.push_back(transitions); // on crée un nouvel état sans transitions
 
@@ -531,7 +526,6 @@ sAutoNDE Concat(const sAutoNDE& x, const sAutoNDE& y){
 ////////////////////////////////////////////////////////////////////////////////
 
 sAutoNDE Complement(const sAutoNDE& x){
-    //TODO tester cette fonction
 
     // il faut que l'automate x soit déterministe
     assert(EstDeterministe(x));
@@ -656,8 +650,6 @@ sAutoNDE ExpressionRationnelle2Automate(string expr){
 
     sAutoNDE r;
 
-    //TODO tester cette fonction
-
     r = expr2Aut(er);
 
     return r;
@@ -698,10 +690,12 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 	at2.nb_finaux = 1;
 	at2.epsilon.at(0).insert(at.initial + 1);
 
-    // TODO : calculer les R(i,j,k)
-    string R[at2.nb_etats][at2.nb_etats][at2.nb_etats];
+	//string R[at2.nb_etats][at2.nb_etats][at2.nb_etats];
+	string*** R = new string**[at2.nb_etats];
 	for(unsigned i = 0; i < at2.nb_etats; i++) { // initialisation à une chaîne vide pour tester plus loin si
-		for(unsigned j = 0; j < at2.nb_etats; j++) { // on a déjà ajouté un élément ou non
+		R[i] = new string*[at2.nb_etats]; // on a déjà ajouté un élément ou non
+		for(unsigned j = 0; j < at2.nb_etats; j++) {
+			R[i][j] = new string[at2.nb_etats];
 			for(unsigned k = 0; k < at2.nb_etats; k++) {
 				R[i][j][k] = "";
 			}
@@ -773,7 +767,13 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
             }
         }
     }
-	sr =  R[0][at2.nb_etats-1][at2.nb_etats-1];
+	sr =  string(R[0][at2.nb_etats-1][at2.nb_etats-1]); // copie
+	for(unsigned int i = 0; i < at2.nb_etats; i++) {
+		for(unsigned int j = 0; j < at2.nb_etats; j++) {
+			delete[] R[i][j];
+		}
+		delete[] R[i];
+	}
     std::cout << sr << std::endl;
 	//printf("%s", sr);
     return sr;
@@ -783,7 +783,8 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 
 bool Equivalent(const sAutoNDE& a1, const sAutoNDE& a2) {
 
-    //FIXME : et si les automates ont un nombre différent de symboles?
+    if(a1.nb_symbs != a2.nb_symbs) { return false; }
+
     const size_t LAST = ASCII_A + a1.nb_symbs - 1;
     size_t word_max_size = max(a1.nb_etats, a2.nb_etats);
     for(size_t i = 1; i <= word_max_size; i++) {
