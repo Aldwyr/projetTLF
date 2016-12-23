@@ -690,7 +690,7 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 	at2.nb_finaux = 1;
 	at2.epsilon.at(0).insert(at.initial + 1);
 
-	//string R[at2.nb_etats][at2.nb_etats][at2.nb_etats];
+    // Initialisation du tableau de string.
 	string*** R = new string**[at2.nb_etats];
 	for(unsigned i = 0; i < at2.nb_etats; i++) { // initialisation à une chaîne vide pour tester plus loin si
 		R[i] = new string*[at2.nb_etats]; // on a déjà ajouté un élément ou non
@@ -702,8 +702,10 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 		}
 	}
 
+    // début du parcours en cherchant les transition direct. dans l'automate.
 	for(unsigned int i = 0; i < at2.nb_etats; i++) {
 		for(unsigned int c = 0; c < at2.nb_symbs; c++) {
+            // On rentre dans la boucle for uniquement si un it_j est trouvé.
 			for(auto it_j = at2.trans[i][c].cbegin(); it_j != at2.trans[i][c].cend(); it_j++) {
 				char symb = c + ASCII_A;
 				string s = string(1, symb);
