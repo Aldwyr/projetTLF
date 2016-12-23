@@ -303,13 +303,15 @@ sAutoNDE Determinize(const sAutoNDE& at){
         }
     }
 
+	delete[] epsilon;
+
     return r;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 ostream& operator<<(ostream& out, const sAutoNDE& at){
-
+#if 0
     // On affiche les nombres d'états disponible
     out << "J'ai " << at.nb_etats << " états dans mon automate." << endl;
 
@@ -357,6 +359,30 @@ ostream& operator<<(ostream& out, const sAutoNDE& at){
             out << *it_epsilon_end << endl;
         }
     }
+#endif
+
+	// on affiche <nb_etats> <nb_symbs> <nb_finaux>
+	out << at.nb_etats << " " << at.nb_symbs << " " << at.nb_finaux << endl;
+	out << at.initial << endl;
+	for(auto it_f = at.finaux.cbegin(); it_f != at.finaux.cend(); it_f++) {
+		out << *it_f << endl;
+		// on affiche les états finaux
+	}
+
+	// on affiche (un par ligne) <état i> <symbole c> <état j> tel que (i,c,j) appartient à at.trans ou (i,j) à at.epsilon
+	// avec c un caractère > nb_symbs
+	char epsilon = ASCII_A + at.nb_symbs;
+	for(unsigned int i = 0; i < at.nb_etats; i++) {
+		for(unsigned int c = 0; c < at.nb_symbs; c++) {
+			char symb = c + ASCII_A;
+			for(auto it_j = at.trans[i][c].cbegin(); it_j != at.trans[i][c].cend(); it_j++) {
+				out << i << " " << symb << " " << *it_j << endl;
+			}
+		}
+		for(auto it_j = at.epsilon[i].cbegin(); it_j != at.epsilon[i].cend(); it_j++) {
+			out << i << " " << epsilon << " " << *it_j << endl;
+		}
+	}
 
     return out;
 }
@@ -502,8 +528,6 @@ sAutoNDE Union(const sAutoNDE& x, const sAutoNDE& y){
 sAutoNDE Concat(const sAutoNDE& x, const sAutoNDE& y){
     assert(x.nb_symbs == y.nb_symbs);
     sAutoNDE r = Append(x, y);
-
-    //TODO tester cette fonction
 
     r.nb_etats = x.nb_etats + y.nb_etats;
     for(auto it = x.finaux.cbegin(); it != x.finaux.cend(); it++) {
@@ -777,7 +801,6 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 		delete[] R[i];
 	}
     std::cout << sr << std::endl;
-	//printf("%s", sr);
     return sr;
 }
 
