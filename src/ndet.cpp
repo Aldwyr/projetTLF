@@ -714,13 +714,13 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 	at2.nb_finaux = 1;
 	at2.epsilon.at(0).insert(at.initial + 1);
 
-	//string R[at2.nb_etats][at2.nb_etats][at2.nb_etats];
+	//string R[at2.nb_etats][at2.nb_etats][at2.nb_etats-1];
 	string*** R = new string**[at2.nb_etats];
 	for(unsigned i = 0; i < at2.nb_etats; i++) { // initialisation à une chaîne vide pour tester plus loin si
 		R[i] = new string*[at2.nb_etats]; // on a déjà ajouté un élément ou non
 		for(unsigned j = 0; j < at2.nb_etats; j++) {
-			R[i][j] = new string[at2.nb_etats];
-			for(unsigned k = 0; k < at2.nb_etats; k++) {
+			R[i][j] = new string[at2.nb_etats-1];
+			for(unsigned k = 0; k < at2.nb_etats - 1; k++) {
 				R[i][j][k] = "";
 			}
 		}
@@ -749,29 +749,33 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 		}
 	}
 
-    for(unsigned int k = 1; k < at2.nb_etats; k++) {
+    for(unsigned int k = 1; k < at2.nb_etats - 1; k++) {
         for(unsigned int i = 0; i < at2.nb_etats; i++) {
             for(unsigned int j = 0; j < at2.nb_etats; j++) {
                 // rappel : R(i,j,k) = R(i,j,k-1) U R(i,k,k-1)R(k,k,k-1)* R(k,j,k-1)
 
-	            string s1 = R[i][j][k-1];
-	            string s2 = R[i][k][k-1];
-	            string s3 = R[k][k][k-1];
-	            string s4 = R[k][j][k-1];
-	            string s5 = "";
-	            if(s2 != "") {
-		            // on ajoute s2 à s5
-		            s5 += s2;
-	            }
-	            if(s3 != "") {
-		            // on ajoute s3 à s5 et on met un point pour concaténer si s5 non vide
-		            if(s5 != "") { s5 += "."; }
-	                s5 += "(" + s3 + ")*";
-	            }
-	            if(s4 != "") {
-		            // on ajoute s4 à s5 et on met un point pour concaténer si s5 non vide
-	                if(s5 != "") { s5 += "."; }
-	                s5 += s4;
+	            string s1 = R[i][j][k-1]; // = D
+	            string s2 = R[i][k][k-1]; // = A
+	            string s3 = R[k][k][k-1]; // = C
+	            string s4 = R[k][j][k-1]; // = B
+	            string s5 = ""; // = A.C*.B
+
+	            if(!(s2 == "" || s4 == "")) {
+		            // il existe un chemin de i à k et de k à j (A et B), potentiellement epsilon
+		            if(s2 != "e") {
+			            // on ne veut pas du e de tête car inutile (si A = C = B = e, alors on ajoute le e de fin)
+			            s5 += s2;
+		            }
+	                // on ajoute potentiellement C
+		            if(!(s3 == "" || s3 == "e")) {
+			            if(s5 != "") { s5 += "."; } // concaténation si s5 non vide, càd si s2 != e
+			            s5 += "(" + s3 + ")*";
+		            }
+		            if(s4 != "e" || s5 == "") {
+			            // soit s5 est vide (càd A = C = e), soit B != e, on ajoute B
+			            if(s5 != "") { s5 += "."; } // concaténation si s5 non vide, càd si s2 != e et s3 != e
+			            s5 += s4;
+		            }
 	            }
 
 	            // on compare s1 et s5 et on met la bonne formule dans R[i][j][k]
@@ -782,7 +786,12 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 		            // rien dans s5 ou s5 égal à s1, on ne met que s1
 		            R[i][j][k] = s1;
 	            } else {
-		            R[i][j][k] = s1 + " | " + s5;
+		            if(s5.length() > 1) {
+			            // s5 est une expression "complexe", on l'encadre avec des parenthèses
+			            R[i][j][k] = s1 + " | (" + s5 + ")";
+		            } else {
+			            R[i][j][k] = s1 + " | " + s5;
+		            }
 	            }
 	            //R[i][j][k] = R[i][j][k-1] + " | " + R[i][k][k-1] + " (" + R[k][k][k-1]+ ")* "+ R[k][j][k-1];R[i][j][k] = R[i][j][k-1] + " | " + R[i][k][k-1] + " (" + R[k][k][k-1]+ ")* "+ R[k][j][k-1];
 
@@ -791,7 +800,7 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
             }
         }
     }
-	sr =  string(R[0][at2.nb_etats-1][at2.nb_etats-1]); // copie
+	sr =  string(R[0][at2.nb_etats-1][at2.nb_etats-2]); // copie
 	for(unsigned int i = 0; i < at2.nb_etats; i++) {
 		for(unsigned int j = 0; j < at2.nb_etats; j++) {
 			delete[] R[i][j];
