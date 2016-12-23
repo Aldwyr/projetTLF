@@ -764,17 +764,32 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 		            // il existe un chemin de i à k et de k à j (A et B), potentiellement epsilon
 		            if(s2 != "e") {
 			            // on ne veut pas du e de tête car inutile (si A = C = B = e, alors on ajoute le e de fin)
-			            s5 += s2;
+			            if(s2.find('|') != string::npos) {
+				            // s2 contient une union, on ajoute des parenthèses pour garantir la priorité
+				            s5 += "(" + s2 + ")";
+			            } else {
+				            s5 += s2;
+			            }
 		            }
 	                // on ajoute potentiellement C
 		            if(!(s3 == "" || s3 == "e")) {
 			            if(s5 != "") { s5 += "."; } // concaténation si s5 non vide, càd si s2 != e
-			            s5 += "(" + s3 + ")*";
+			            if(s3.length() > 1) {
+				            // on entoure de parenthèses
+				            s5 += "(" + s3 + ")*";
+			            } else {
+				            s5 += s3 + "*";
+			            }
 		            }
 		            if(s4 != "e" || s5 == "") {
 			            // soit s5 est vide (càd A = C = e), soit B != e, on ajoute B
-			            if(s5 != "") { s5 += "."; } // concaténation si s5 non vide, càd si s2 != e et s3 != e
-			            s5 += s4;
+			            if(s5 != "") { s5 += "."; } // concaténation si s5 non vide, càd si s2 != e et/ou s3 != e
+			            if(s4.find('|') != string::npos) {
+				            // s4 contient une union, on ajoute des parenthèses pour garantir la priorité
+				            s5 += "(" + s4 + ")";
+			            } else {
+				            s5 += s4;
+			            }
 		            }
 	            }
 
@@ -786,17 +801,17 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 		            // rien dans s5 ou s5 égal à s1, on ne met que s1
 		            R[i][j][k] = s1;
 	            } else {
-		            if(s5.length() > 1) {
-			            // s5 est une expression "complexe", on l'encadre avec des parenthèses
+		            if(s5.find('|') != string::npos) {
+			            // s5 contient une union, on l'encadre avec des parenthèses
 			            R[i][j][k] = s1 + " | (" + s5 + ")";
 		            } else {
 			            R[i][j][k] = s1 + " | " + s5;
 		            }
 	            }
-	            //R[i][j][k] = R[i][j][k-1] + " | " + R[i][k][k-1] + " (" + R[k][k][k-1]+ ")* "+ R[k][j][k-1];R[i][j][k] = R[i][j][k-1] + " | " + R[i][k][k-1] + " (" + R[k][k][k-1]+ ")* "+ R[k][j][k-1];
+	            //R[i][j][k] = R[i][j][k-1] + " | " + R[i][k][k-1] + " (" + R[k][k][k-1]+ ")* "+
+	            // R[k][j][k-1];R[i][j][k] = R[i][j][k-1] + " | " + R[i][k][k-1] + " (" + R[k][k][k-1]+ ")* "+ R[k][j][k-1];
 
-
-	            std::cout << R[i][j][k] << std::endl;
+	            //std::cout << R[i][j][k] << std::endl;
             }
         }
     }
@@ -807,7 +822,7 @@ string Automate2ExpressionRationnelle(sAutoNDE at){
 		}
 		delete[] R[i];
 	}
-    std::cout << sr << std::endl;
+    //std::cout << sr << std::endl;
     return sr;
 }
 
